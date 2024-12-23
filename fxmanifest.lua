@@ -1,14 +1,12 @@
 fx_version 'cerulean'
 game 'gta5'
 
-author 'notHelmi'
-name 'nh_snowball' 
-description 'Snow features for when its snowing in qbx_core'
+author 'notHelmi + Ju'
+description 'Snow features for when its snowing'
 version '1.0.0'
 
 shared_scripts {
-    '@ox_lib/init.lua',
-    '@qbx_core/modules/lib.lua',
+    '@ox_lib/init.lua'
 }
 
 client_script 
