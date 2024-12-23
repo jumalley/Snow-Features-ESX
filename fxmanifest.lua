@@ -6,7 +6,8 @@ description 'Snow features for when its snowing'
 version '1.0.0'
 
 shared_scripts {
-    '@ox_lib/init.lua'
+    '@ox_lib/init.lua',
+    '@es_extended/imports.lua'
 }
 
 client_script 
