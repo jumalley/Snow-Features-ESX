@@ -16,10 +16,6 @@ local snowmen = {
 }
 local inSnowman = false
 
-
--------------------------------------------------------------------------------------------------------------------------------------------
--- Snowball Making and weather checking
-
 local keybind = lib.addKeybind({
     name = 'snowball',
     description = 'press G to make a snowball',
@@ -33,27 +29,39 @@ RegisterNetEvent('snowball', function()
     local bucket = lib.callback.await('snow:GetBucket')
 
     if inSnowman then
-        exports.qbx_core:Notify('You can\'t do this while in a snowman!', 'error', 5000)
+        lib.notify({
+            title = 'Action Denied',
+            description = 'You can\'t do this while in a snowman!',
+            type = 'error'
+        })
         return
-        end
+    end
     local weather = GlobalState.weather.weather
 
     if GetInteriorFromEntity(cache.ped) ~= 0 or bucket ~= 0 then
-        exports.qbx_core:Notify('You cannot make a snowball indoors!', 'error', 5000)
+        lib.notify({
+            title = 'Action Denied',
+            description = 'You cannot make a snowball indoors!',
+            type = 'error'
+        })
         return
     end
 
-    if cache.vehicle then -- Check if the player is in a vehicle
+    if cache.vehicle then
         return
     end
-    local maxamount = lib.callback.await('checkSnowballCount')                    -- Check if the player has more than 10 snowballs
+    local maxamount = lib.callback.await('checkSnowballCount')
     if not maxamount then
-        exports.qbx_core:Notify('You can\'t carry more snowballs', 'error', 5000) -- Notify Client, You have too many snowballs
+        lib.notify({
+            title = 'Inventory Full',
+            description = 'You can\'t carry more snowballs',
+            type = 'error'
+        })
         cooldown = false
         return
     end
-    if lib.progressCircle({            -- Start the Progress Circle
-            label = 'Making snowball', -- Label
+    if lib.progressCircle({
+            label = 'Making snowball',
             duration = 1500,
             position = 'bottom',
             useWhileDead = false,
@@ -65,33 +73,36 @@ RegisterNetEvent('snowball', function()
                 move = true,
                 combat = true,
             },
-            anim = { -- anim@mp_snowball : pickup_snowball
+            anim = {
                 dict = 'anim@mp_snowball',
                 clip = 'pickup_snowball',
                 flag = 0
             },
         }) then
-        print('we completed the progress, Return True')
-        TriggerServerEvent('qbx_smallresources:server:addSnowballToInv') -- Trigger Server Event
+        TriggerServerEvent('qbx_smallresources:server:addSnowballToInv')
         Wait(1500)
         cooldown = false
     else
-        print('we failed, Returning False')
-        exports.qbx_core:Notify('You have cancelled the action', 'error', 5000) -- Notify Client, You cancelled the action
+        lib.notify({
+            title = 'Action Cancelled',
+            description = 'You have cancelled the action',
+            type = 'error'
+        })
     end
 end)
 
-------------------------------------------------------------------------------------------------------------------------------
--- Making of the snowman
-
 RegisterNetEvent('qbx_smallresources:client:snowmanProgress', function()
     if lib.callback.await('checkSnowballAndCarrotCount') then
-        exports.qbx_core:Notify('You do not have enough snowballs or carrots', 'error', 5000) -- Notify Client, You do not have enough snowballs or carrots
+        lib.notify({
+            title = 'Insufficient Materials',
+            description = 'You do not have enough snowballs or carrots',
+            type = 'error'
+        })
         return
     end
 
-    if lib.progressCircle({           -- Start the Progress Circle
-            label = 'Making Snowman', -- Label
+    if lib.progressCircle({
+            label = 'Making Snowman',
             duration = 15000,
             position = 'bottom',
             useWhileDead = false,
@@ -103,39 +114,35 @@ RegisterNetEvent('qbx_smallresources:client:snowmanProgress', function()
                 move = true,
                 combat = true,
             },
-            anim = { -- anim@amb@clubhouse@tutorial@bkr_tut_ig3@ : machinic_loop_mechandplayer
+            anim = {
                 dict = 'anim@amb@clubhouse@tutorial@bkr_tut_ig3@',
                 clip = 'machinic_loop_mechandplayer',
                 flag = 0
             },
         }) then
-        print('we completed the progress, Return True')
-
         local playerHeading = GetEntityHeading(cache.ped)
         local playerCoords = GetEntityCoords(cache.ped)
 
-        -- Calculate new coordinates 1 unit in front of the player
         local offsetX = math.sin(math.rad(playerHeading)) * 1.0
         local offsetY = math.cos(math.rad(playerHeading)) * 1.0
         local newCoords = vector4(playerCoords.x - offsetX, playerCoords.y + offsetY, playerCoords.z - 1.0, playerHeading)
 
-        TriggerServerEvent('qbx_smallresources:server:removeSnowballAndCarrotFromInv') -- Trigger Server Event
-
+        TriggerServerEvent('qbx_smallresources:server:removeSnowballAndCarrotFromInv')
 
         local randomIndex = math.random(1, #snowmen)
         local snowmanModel = snowmen[randomIndex]
-       SnowmanEntity = CreateObject(snowmanModel, newCoords.x, newCoords.y, newCoords.z, true, true, true) -- Create the snowman
-        print('WOOHOO, you made a snowman')
+        SnowmanEntity = CreateObject(snowmanModel, newCoords.x, newCoords.y, newCoords.z, true, true, true)
     else
-        exports.qbx_core:Notify('You have cancelled the action', 'error', 5000) -- Notify Client, You cancelled the action
+        lib.notify({
+            title = 'Action Cancelled',
+            description = 'You have cancelled the action',
+            type = 'error'
+        })
     end
 end)
-------------------------------------------------------------------------------------------------------------------------------
--- Hiding in the snowman and exiting the snowman
 
 local function snowmanCheck()
     inSnowman = true
-    print("Entered snowmanCheck, inSnowman set to true")
     CreateThread(function()
         while inSnowman do
             Wait(0)
@@ -148,8 +155,7 @@ local function snowmanCheck()
                 lib.requestNamedPtfxAsset('core')
                 UseParticleFxAssetNextCall('core')
                 StartNetworkedParticleFxNonLoopedAtCoord('ent_dst_xt_snowman', coords.x, coords.y, coords.z, 0.0, 0.0, 0.0,
-                    1,
-                    false, false, false)
+                    1, false, false, false)
 
                 TaskPlayAnim(cache.ped, "anim@sports@ballgame@handball@", "ball_rstop_r", 8.0, -8.0, -1, 0, 0, false,
                     false, false)
@@ -168,26 +174,23 @@ local function snowmanCheck()
     end)
 end
 
-
-
 local function hideInSnowman(snowmanCoords, snowmanEntity)
-    print("Event 'qbx_smallresources:client:hideInSnowman' triggered")
     local playerPed = cache.ped
     local distance = #(GetEntityCoords(playerPed) - vector3(snowmanCoords.x, snowmanCoords.y, snowmanCoords.z))
-    print("Distance to snowman:", distance)
     if inSnowman then
-        print("Already in snowman, returning")
         return
     end
     if distance > 2.0 then
-        print("Too far from snowman, notifying client")
-        exports.qbx_core:Notify('You are too far away from the snowman', 'error', 5000) -- Notify Client, You are too far away from the snowman
+        lib.notify({
+            title = 'Too Far',
+            description = 'You are too far away from the snowman',
+            type = 'error'
+        })
         return
     end
-    print("Hiding in snowman")
-    SetEntityVisible(playerPed, false, false)                                                               -- Set the player invisible
-    SetEntityCoords(playerPed, snowmanCoords.x, snowmanCoords.y, snowmanCoords.z - 1, 0.0, 0.0, 0.0, false) -- Set the player inside the snowman
-    FreezeEntityPosition(playerPed, true)                                                                   -- Freeze the player
+    SetEntityVisible(playerPed, false, false)
+    SetEntityCoords(playerPed, snowmanCoords.x, snowmanCoords.y, snowmanCoords.z - 1, 0.0, 0.0, 0.0, false)
+    FreezeEntityPosition(playerPed, true)
 
     lib.showTextUI('[w] - Exit', {
         position = "top-center",
@@ -206,10 +209,6 @@ for k, v in pairs(snowmen) do
         {
             label = 'Hide in Snowman',
             onSelect = function(data)
-                print("Snowman selected, triggering event")
-                for k, v in pairs(data) do
-                    print(k, v)
-                end
                 hideInSnowman(data.coords, data.entity)
             end
         }
